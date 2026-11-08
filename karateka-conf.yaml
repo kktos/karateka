@@ -1,0 +1,23 @@
+input:
+  cpu: 65C02
+  source: src/main.asm
+  options:
+    listing.case: source
+    listing.data: fold
+
+output:
+  linker:
+    script: link/karateka.linker.asm
+
+  listing:
+    path: dist/karateka.lst
+    pass2: true
+    linker: true
+
+  symbols:
+    enabled: true
+    path: dist/karateka.sym
+
+  segments:
+    enabled: true
+    path: dist/karateka.seg

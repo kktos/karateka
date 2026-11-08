@@ -1,0 +1,7 @@
+# the original disk, and what tools/extract.py takes from it
+assets/*.dsk
+bin/
+
+dist/
+node_modules/
+.DS_Store
