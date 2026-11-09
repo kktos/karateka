@@ -13,8 +13,11 @@ GAME_LO_BLOCKS	= ($1000 - $0200) / 512
 GAME_HI_BLOCKS	= ($A000 - $6000) / 512
 CHUNK_LO_BLOCKS	= ($2000 - $1000) / 512
 CHUNK_HI_BLOCKS	= ($C000 - $A000) / 512
+TITLE_BLOCKS	= ($C000 - $A000) / 512
+UP_ROWS_BLOCKS	= ($0A00 - $0800) / 512
 
 	.include "modules/boot/boot.module.asm"
 	.include "modules/karateka/karateka.module.asm"
 	.include "modules/game/game.module.asm"
 	.include "modules/chunks/chunks.module.asm"
+	.include "modules/upside/upside.module.asm"

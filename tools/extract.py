@@ -12,7 +12,12 @@ each sector going to the page a table at $5400 gives (12 pages per track, 0 = en
 
 Pages $0200-$07FF come from T0 S2-S7 (copied there by boot1 at $1000).
 
-usage: tools/extract.py [disk.dsk] [outdir]
+Side 2 (KARATEKA_S2) is the same game upside down. It differs from side 1 only in
+  T1B S0-S1  $0800-$09FF  the hires row address tables ($0800 lo, $08C0 hi), reversed
+  T04-T06    $A000-$BFFF  the title picture, flipped vertically
+which this script checks, before writing these two as upside_*.bin.
+
+usage: tools/extract.py [side1.dsk] [outdir] [side2.dsk]
 """
 
 import os
@@ -26,14 +31,19 @@ def main():
     here = os.path.dirname(os.path.abspath(__file__))
     dsk = sys.argv[1] if len(sys.argv) > 1 else os.path.join(here, "..", "assets", "KARATEKA_S1.dsk")
     out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(here, "..", "bin")
+    dsk2 = sys.argv[3] if len(sys.argv) > 3 else os.path.join(here, "..", "assets", "KARATEKA_S2.dsk")
 
-    disk = open(dsk, "rb").read()
-    if len(disk) != 35 * TRACK_SECTORS * SECTOR:
-        sys.exit(f"{dsk}: {len(disk)} bytes, not a 140K .dsk")
+    def read_dsk(path):
+        data = open(path, "rb").read()
+        if len(data) != 35 * TRACK_SECTORS * SECTOR:
+            sys.exit(f"{path}: {len(data)} bytes, not a 140K .dsk")
+        return data
 
-    def sector(track, sec):
+    disk = read_dsk(dsk)
+
+    def sector(track, sec, data=None):
         at = (track * TRACK_SECTORS + sec) * SECTOR
-        return disk[at : at + SECTOR]
+        return (data or disk)[at : at + SECTOR]
 
     def load(first_track, pages):
         """The loader's read: 12 sectors a track, sector s to page pages[track*12 + s]."""
@@ -72,6 +82,37 @@ def main():
             sys.exit(f"chunk {n}: bad signature {sig.hex(' ')}")
         write(f"c{n}_lo.1000-1FFF.bin", image(chunk, 0x1000, 0x1FFF), 0x1000)
         write(f"c{n}_hi.A000-BFFF.bin", image(chunk, 0xA000, 0xBFFF), 0xA000)
+
+    # side 2: the game upside down
+    disk2 = read_dsk(dsk2)
+    rows_sectors = {(0x1B, 0), (0x1B, 1)}
+    title_sectors = {(t, s) for t in range(0x04, 0x07) for s in range(12)}
+    for track in range(35):
+        for sec in range(TRACK_SECTORS):
+            if (track, sec) in rows_sectors | title_sectors:
+                continue
+            if sector(track, sec) != sector(track, sec, disk2):
+                sys.exit(f"{dsk2}: T{track:02X} S{sec:X} differs from side 1, not just the row tables and the title")
+
+    rows = sector(0x1B, 0) + sector(0x1B, 1)
+    rows2 = sector(0x1B, 0, disk2) + sector(0x1B, 1, disk2)
+    for name, at in (("lo", 0x00), ("hi", 0xC0)):
+        if rows2[at : at + 192] != rows[at : at + 192][::-1]:
+            sys.exit(f"{dsk2}: the {name} row table at ${0x800 + at:04X} isn't side 1's reversed")
+    if rows2[0x180:] != rows[0x180:]:
+        sys.exit(f"{dsk2}: $0980-$09FF differs from side 1")
+
+    def row(y):
+        return (y & 7) * 0x400 + ((y >> 3) & 7) * 0x80 + (y >> 6) * 0x28
+
+    title1 = image(title, 0xA000, 0xBFFF)
+    title2 = b"".join(sector(t, s, disk2) for t, s in sorted(title_sectors))[:0x2000]
+    for y in range(192):
+        if title2[row(y) : row(y) + 40] != title1[row(191 - y) : row(191 - y) + 40]:
+            sys.exit(f"{dsk2}: title row {y} isn't side 1's row {191 - y}")
+
+    write("upside_rows.0800-09FF.bin", rows2, 0x0800)
+    write("upside_title.A000-BFFF.bin", title2, 0xA000)
 
 
 if __name__ == "__main__":

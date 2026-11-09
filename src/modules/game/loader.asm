@@ -44,9 +44,9 @@ LoadChunk:
 	bra Loaded
 
 LoadTitle:
-	ldx #<titleName
-	ldy #>titleName
-	jsr tinyDOS::LoadFile
+	ldx titleFile
+	ldy titleFile+1
+	jsr tinyDOS::LoadFromFileAt
 
 Loaded:
 	ldx #$00
@@ -69,8 +69,18 @@ chunkHi:
 	.db CHUNK_LO_BLOCKS, CHUNK_HI_BLOCKS
 	.dw $A000
 	.pstr "C0"
-titleName:
+
+; the title to load: Init points it at titleUpside when a key is held at boot
+titleFile:
+	.dw titleNormal
+titleNormal:
+	.db 0, TITLE_BLOCKS
+	.dw $A000
 	.pstr "TITLE"
+titleUpside:
+	.db UP_ROWS_BLOCKS, TITLE_BLOCKS
+	.dw $A000
+	.pstr "UPSIDE"
 
 	.if * > $03C8 {
 		.error "The loader ends at " + .hex(*) + ": past $03C7, it overwrites $03C8."

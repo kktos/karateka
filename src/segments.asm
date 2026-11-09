@@ -36,3 +36,11 @@
 .segment C3_HI		{ start: $A000, end: $BFFF }
 .segment C4_LO		{ start: $1000, end: $1FFF }
 .segment C4_HI		{ start: $A000, end: $BFFF }
+
+;
+; UPSIDE: side 2, the same game upside down, loaded instead when a key is held at boot
+;  $0800-$09FF  T1B S0-S1: the hires row tables, reversed (over GAME's)
+;  $A000-$BFFF  T04-T06: the title picture, flipped (instead of TITLE)
+;
+.segment UP_ROWS	{ start: $0800, end: $09FF }
+.segment UP_TITLE	{ start: $A000, end: $BFFF }
