@@ -38,6 +38,19 @@ Init:
 	ldy #>gameHi
 	jsr tinyDOS::LoadFromFileAt
 
+	; a key held at boot: side 2's game, upside down. The latch catches a key pressed during the boot
+	; (a held key repeats), the //e's any-key-down bit one pressed before; reading it clears the strobe.
+	lda sys::KBD
+	ora sys::KBDSTRB
+	bpl :+
+	ldx #<upsideRows
+	ldy #>upsideRows
+	jsr tinyDOS::LoadFromFileAt
+	lda #<titleUpside
+	sta titleFile
+	lda #>titleUpside
+	sta titleFile+1
+:
 	; $5300
 	lda sys::ROMIN		; the ROM, as the original loader left it
 
@@ -67,3 +80,7 @@ gameLo:	.db 0, GAME_LO_BLOCKS
 gameHi:	.db GAME_LO_BLOCKS, GAME_HI_BLOCKS
 	.dw $6000
 	.pstr "GAME"
+upsideRows:
+	.db 0, UP_ROWS_BLOCKS
+	.dw $0800
+	.pstr "UPSIDE"
